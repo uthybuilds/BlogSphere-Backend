@@ -51,7 +51,7 @@ const getAllComments = async (req, res) => {
     res.status(200).json({
       success: true,
       comments,
-      count: comments.length, // Optional: Send total count
+      count: comments.length, // Optional: sending total count
     });
   } catch (error) {
     console.error(error);
