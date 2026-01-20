@@ -7,6 +7,7 @@ const {
   togglePublish,
   addComment,
   getBlogComments,
+  generateBlog,
 } = require("../controllers/blogController");
 const upload = require("../middleware/multer");
 const auth = require("../middleware/auth");
@@ -19,5 +20,6 @@ router.patch("/:id", auth, togglePublish);
 
 router.post("/add-comment", addComment);
 router.get("/comments/:id", getBlogComments);
+router.post("/generate", auth, generateBlog);
 
 module.exports = router;

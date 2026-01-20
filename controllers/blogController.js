@@ -8,7 +8,7 @@ const addBlog = async (req, res) => {
   try {
     const imageFile = req.file;
 
-    //check if all fields are present
+    //checking if all fields are present
     if (!title || !description || !category || !imageFile) {
       return res
         .status(400)
@@ -162,6 +162,59 @@ const getBlogComments = async (req, res) => {
   }
 };
 
+const generateBlog = async (req, res) => {
+  const { title, subTitle } = req.body;
+  
+  if (!title) {
+    return res.status(400).json({ success: false, message: "Title is required" });
+  }
+
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ success: false, message: "AI API Key not configured" });
+    }
+
+    const prompt = `Write a comprehensive and engaging blog post about "${title}"${subTitle ? ` with the subtitle "${subTitle}"` : ""}. 
+    The content should be formatted in HTML suitable for a rich text editor (use <h1>, <h2>, <p>, <ul>, <li>, <strong>, etc.). 
+    Do not include the title in the HTML content as it is handled separately.
+    Make it professional, informative, and around 800 words.`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Failed to generate content");
+    }
+
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedText) {
+      throw new Error("No content generated");
+    }
+
+    // Clean up markdown code blocks if present (Gemini often wraps in ```html ... ```)
+    const cleanContent = generatedText.replace(/^```html\n|```$/g, "").replace(/^```\n|```$/g, "");
+
+    res.status(200).json({ success: true, content: cleanContent });
+
+  } catch (error) {
+    console.error("AI Generation Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   addBlog,
   getAllBlogs,
@@ -170,4 +223,5 @@ module.exports = {
   togglePublish,
   addComment,
   getBlogComments,
+  generateBlog,
 };
